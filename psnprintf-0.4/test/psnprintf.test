@@ -1,0 +1,626 @@
+// Test the  psnprintf implementation
+#include "psnprintf.h"
+
+int psnprintf_pstrnlen()
+{
+    // Test length
+    size_t result;
+    
+    result = pstrnlen("", 5);
+    ASSERT_LEN("", result, 0)
+    
+    result = pstrnlen("1", 5);
+    ASSERT_LEN("1", result, 1)
+    
+    result = pstrnlen("1234567890", 15);
+    ASSERT_LEN("1234567890", result, 10)
+
+	return 1;
+}
+
+int psnprintf_pstrnlen_overflow()
+{
+    size_t result;
+    
+    result = pstrnlen("", 0);
+    ASSERT_LEN("", result, 0)
+    
+    result = pstrnlen("1", 0);
+    ASSERT_LEN("1", result, 0)
+    
+    result = pstrnlen("1234567890", 5);
+    ASSERT_LEN("1234567890", result, 5);
+
+	return 1;
+}
+
+static char *psnprintf_nosub_strings[] = { 
+        "",
+        " ",
+        " abcd",
+        "abcd ",
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890", /* 360 + 1 bytes */
+        "%%",
+        "%%abcd",
+        "abcd%%",
+        "ab%%cd",
+        0};
+
+#define BUFFSIZE 512
+int psnprintf_nosub()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char **str = psnprintf_nosub_strings;
+    while (*str != 0)
+    {
+        controlret = sprintf(controlstr, *str);
+        testret = psnprintf(teststr, BUFFSIZE, *str);
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        str++;
+    }
+                      
+    return 1;
+}
+
+static char *psnprintf_char_strings[] = {
+        "%c",
+        "1234%c56789",
+        0};
+
+int psnprintf_char()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char **str = psnprintf_char_strings;
+    while (*str != 0)
+    {
+        controlret = sprintf(controlstr, *str, 'A');
+        testret = psnprintf(teststr, BUFFSIZE, *str, 'A');
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        str++;
+    }
+                      
+    return 1;
+}
+
+static char *psnprintf_str_strings[][2] = {
+        {"%s", ""},
+        {"%s", "ABCD"},
+        {"1234%s56789", ""},
+        {"1234%s56789", "ABCD"},
+        {0, 0} };
+
+int psnprintf_str()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char *(*strs)[2] = psnprintf_str_strings;
+    while ((*strs)[0] != 0)
+    {
+        testret = sprintf(controlstr, (*strs)[0], (*strs)[1]);
+        controlret = psnprintf(teststr, BUFFSIZE, (*strs)[0], (*strs)[1]);
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        strs++;
+    }
+                      
+    return 1;
+}
+
+static char *psnprintf_strprecision_strings[][2] = {
+        {"%.0s", ""},
+        {"%.0s", "ABC"},
+        {"%.5s", ""},
+        {"%.5s", "ABC"},
+        {"%.5s", "ABCDEFGHIJ"},
+        {"%.15s", "ABC"},
+        {"%.15s", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+        {0, 0} };
+
+int psnprintf_strprecision()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char *(*strs)[2] = psnprintf_strprecision_strings;
+    while ((*strs)[0] != 0)
+    {
+        controlret = sprintf(controlstr, (*strs)[0], (*strs)[1]);
+        testret = psnprintf(teststr, BUFFSIZE, (*strs)[0], (*strs)[1]);
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        strs++;
+    }
+                      
+    return 1;
+}
+
+int psnprintf_strvarprecision()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+
+    controlret = sprintf(controlstr, "%.*s", 0, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%.*s", 0, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%.*s", 0, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%.*s", 0, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%.*s", 5, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%.*s", 5, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%.*s", 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%.*s", 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    return 1;
+}        
+
+static char *psnprintf_strwidth_strings[][2] = {
+        {"%5s", ""},
+        {"%05s", ""},
+        {"%5s", "ABC"},
+        {"%05s", "ABC"},
+        {"%5s", "ABCDEFGH"},
+        {"%05s", "ABCDEFGH"},
+        {"%-5s", "ABC"},
+        {"%-5s", "ABCDEFGH"},
+        {"%20s", "ABC"},
+        {"%-20s", "ABC"},
+        {"%020s", "ABC"},
+        {"%-020s", "ABC"},
+        {0, 0} };
+
+int psnprintf_strwidth()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    char *(*strs)[2] = psnprintf_strwidth_strings;
+    while ((*strs)[0] != 0)
+    {
+        controlret = sprintf(controlstr, (*strs)[0], (*strs)[1]);
+        testret = psnprintf(teststr, BUFFSIZE, (*strs)[0], (*strs)[1]);
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        strs++;
+    }
+                      
+    return 1;
+}
+
+int psnprintf_strvarwidth()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+
+    controlret = sprintf(controlstr, "%*s", 0, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", 0, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+    
+    controlret = sprintf(controlstr, "%*s", 0, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", 0, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*s", 5, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", 5, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*s", 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*s", 5, "ABCDEFGH");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", 5, "ABCDEFGH");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*s", -5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*s", -5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%-*s", 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%-*s", 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%0*s", 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%0*s", 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%-0*s", 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%-0*s", 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    return 1;
+}        
+
+
+static char *psnprintf_strwidthprecision_strings[][2] = {
+        {"%1.5s", ""},
+        {"%05.5s", ""},
+        {"%5.5s", "ABC"},
+        {"%5.5s", "ABCDEFGH"},
+        {"%05.5s", "ABC"},
+        {"%05.5s", "ABCDEFGH"},
+        {"%-5.5s", "ABC"},
+        {"%-5.5s", "ABCDEFGH"},
+        {"%20.5s", "ABC"},
+        {0, 0} };
+
+int psnprintf_strwidthprecision()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char *(*strs)[2] = psnprintf_strwidthprecision_strings;
+    while ((*strs)[0] != 0)
+    {
+        controlret = sprintf(controlstr, (*strs)[0], (*strs)[1]);
+        testret = psnprintf(teststr, BUFFSIZE, (*strs)[0], (*strs)[1]);
+        
+        ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        strs++;
+    }
+                      
+    return 1;
+}
+
+
+int psnprintf_strvarwidthvarprecision()
+{
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+
+    controlret = sprintf(controlstr, "%*.*s", 0, 0, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 0, 0, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+    
+    controlret = sprintf(controlstr, "%*.*s", 5, 5, "");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 5, 5, "");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", 0, 0, "ABCDEFG");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 0, 0, "ABCDEFG");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", 5, 5, "ABCDEFG");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 5, 5, "ABCDEFG");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", 5, 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 5, 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", -5, 5, "ABCDEFG");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", -5, 5, "ABCDEFG");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", -5, 5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", -5, 5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", 5, -5, "ABCDEFG");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 5, -5, "ABCDEFG");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    controlret = sprintf(controlstr, "%*.*s", 5, -5, "ABC");
+    testret = psnprintf(teststr, BUFFSIZE, "%*.*s", 5, -5, "ABC");
+    ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+
+    return 1;
+}
+
+
+int psnprintf_stroverflow()
+{
+    char teststr[BUFFSIZE];
+    int result;
+    int i;    //used in macros
+
+#define TEST_OVERFLOW(sz, expectreturn, stmt, fmtstr) \
+    RESET_DAMAGE(teststr, BUFFSIZE) \
+    result = stmt; \
+    ASSERT_NODAMAGE(teststr, sz, BUFFSIZE, fmtstr); \
+    ASSERT_EQUALS(expectreturn, result, fmtstr)
+
+    // No sub
+    TEST_OVERFLOW(0, 0, psnprintf(teststr, 0, ""), "\"\" sz: 0")
+    TEST_OVERFLOW(0, 5, psnprintf(teststr, 0, "ABCDE"), "\"ABCDE\" sz: 0")
+    TEST_OVERFLOW(3, 5, psnprintf(teststr, 3, "ABCDE"), "\"ABCDE\" sz: 3")
+    
+    // Char
+    TEST_OVERFLOW(0, 1, psnprintf(teststr, 0, "%c", 'A'), "\"c\" sz: 0")
+    TEST_OVERFLOW(1, 5, psnprintf(teststr, 1, "%cBCDE", 'A'), "\"cBCDE\" sz: 1")
+    TEST_OVERFLOW(3, 5, psnprintf(teststr, 3, "ABC%cE", 'D'), "\"ABCcE\" sz: 3")
+   
+    // Str
+    TEST_OVERFLOW(0, 5, psnprintf(teststr, 0, "%s", "12345"), "\"s\" sz: 0")
+    TEST_OVERFLOW(1, 9, psnprintf(teststr, 1, "%sBCDE", "12345"), "\"sBCDE\" sz: 1")
+    TEST_OVERFLOW(3, 9, psnprintf(teststr, 3, "%sBCDE", "12345"), "\"sBCDE\" sz: 3")
+    TEST_OVERFLOW(3, 9, psnprintf(teststr, 3, "A%sCDE", "12345"), "\"AsCDE\" sz: 3")
+    TEST_OVERFLOW(3, 9, psnprintf(teststr, 3, "AB%sDE", "12345"), "\"ABsDE\" sz: 3")
+    TEST_OVERFLOW(3, 9, psnprintf(teststr, 3, "ABC%sE", "12345"), "\"ABCsE\" sz: 3")
+    TEST_OVERFLOW(3, 9, psnprintf(teststr, 3, "ABCD%s", "12345"), "\"ABCDs\" sz: 3")
+
+    // Str with width
+    TEST_OVERFLOW(0, 10, psnprintf(teststr, 0, "%10s", "12345"), "\"10s\" sz: 0")
+    TEST_OVERFLOW(3, 10, psnprintf(teststr, 3, "%10s", "12345"), "\"10s\" sz: 3")
+    TEST_OVERFLOW(5, 10, psnprintf(teststr, 5, "%10s", "12345"), "\"10s\" sz: 5")
+    TEST_OVERFLOW(7, 10, psnprintf(teststr, 7, "%10s", "12345"), "\"10s\" sz: 7")
+    TEST_OVERFLOW(0, 10, psnprintf(teststr, 0, "%010s", "12345"), "\"010s\" sz: 0")
+    TEST_OVERFLOW(3, 10, psnprintf(teststr, 3, "%010s", "12345"), "\"010s\" sz: 3")
+    TEST_OVERFLOW(5, 10, psnprintf(teststr, 5, "%010s", "12345"), "\"010s\" sz: 5")
+    TEST_OVERFLOW(7, 10, psnprintf(teststr, 7, "%010s", "12345"), "\"010s\" sz: 7")
+    TEST_OVERFLOW(0, 10, psnprintf(teststr, 0, "%-10s", "12345"), "\"-10s\" sz: 0")
+    TEST_OVERFLOW(3, 10, psnprintf(teststr, 3, "%-10s", "12345"), "\"-10s\" sz: 3")
+    TEST_OVERFLOW(5, 10, psnprintf(teststr, 5, "%-10s", "12345"), "\"-10s\" sz: 5")
+    TEST_OVERFLOW(7, 10, psnprintf(teststr, 7, "%-10s", "12345"), "\"-10s\" sz: 7")
+
+    return 1;
+}
+    
+static char *psnprintf_int_formats[] = { 
+        "%d",
+        "%i", 
+        "%u",
+        "%o",
+        "%x",
+        "%X",
+        "%3d",
+        "%.3d",
+        "%4.3d",
+        "%3.4d", 
+        "%#x", 
+        "%#X",
+        "%hd",
+        "%ld",
+        "%06d",
+        "% 6d",
+        "%+6d",
+        "%+d",
+        "% d",
+        "%-5d",
+        "%-2d",
+        "%06u",
+        "% 6u",
+        "%+6u",
+        "%+u",
+        "% u",
+        "%-5u",
+        "%-2u",
+        "%06x",
+        "% 6x",
+        "%+6x",
+        "%+x",
+        "% x",
+        "%-5x",
+        "%-2x",
+        "%06o",
+        "% 6o",
+        "%+6o",
+        "%+o",
+        "% o",
+        "%-5o",
+        "%-2o",
+        0};
+
+static int psnprintf_int_integers[] = {
+        0, 
+        1,
+        -1,
+        36,
+        -36,
+        1000,
+        1024,
+        -1000,
+        -1024,
+        32767,
+        -32767 };
+#define NUM_INT_INTEGERS sizeof(psnprintf_int_integers) / sizeof(int)
+
+int psnprintf_int()
+{
+    // Test lots of numbers with lots of formats against sprintf
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char **str = psnprintf_int_formats;
+    while (*str != 0)
+    {
+        for (int i = 0; i < NUM_INT_INTEGERS; i++)
+        {
+            controlret = sprintf(controlstr, *str, psnprintf_int_integers[i]);
+            testret = psnprintf(teststr, BUFFSIZE, *str, psnprintf_int_integers[i]);
+            
+            ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        }
+        str++;
+    }
+    return 1;
+}
+
+#undef TEST_OVERFLOW
+#define TEST_OVERFLOW(sz, stmt, fmtstr) \
+    RESET_DAMAGE(teststr, BUFFSIZE) \
+    ASSERT_NODAMAGE(teststr, sz, BUFFSIZE, fmtstr);
+
+int psnprintf_intoverflow()
+{
+    // Test lots of numbers with lots of formats against sprintf
+    char teststr[BUFFSIZE];
+    
+    char **str = psnprintf_int_formats;
+    while (*str != 0)
+    {
+        for (int i = 0; i < NUM_INT_INTEGERS; i++)
+        {
+            TEST_OVERFLOW(0, psnprintf(teststr, 0, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(1, psnprintf(teststr, 1, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(2, psnprintf(teststr, 2, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(3, psnprintf(teststr, 3, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(4, psnprintf(teststr, 4, *str, psnprintf_int_integers[i]), *str)            TEST_OVERFLOW(4, psnprintf(teststr, 0, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(5, psnprintf(teststr, 5, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(6, psnprintf(teststr, 6, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(7, psnprintf(teststr, 7, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(8, psnprintf(teststr, 8, *str, psnprintf_int_integers[i]), *str)
+            TEST_OVERFLOW(9, psnprintf(teststr, 9, *str, psnprintf_int_integers[i]), *str)
+        }
+        str++;
+    }
+    return 1;
+}
+
+#define ASSERT_EQUAL(expected, result, str) \
+    if (expected != result) \
+    { \
+        char *fmt = new char[strlen(str) + 200]; /* dodgy, yes */ \
+        sprintf(fmt, "String: \"%s\"\nExpected: %d\nResult: %d\n", str, expected, result); \
+        throw new TestAssertException(fmt); \
+    }
+
+    
+int psnprintf_intoverflowreturn()
+{
+    // Test lots of numbers with lots of formats against sprintf
+    char teststr[BUFFSIZE];
+    int testreturn;
+    int controlreturn;
+    
+    
+    char **str = psnprintf_int_formats;
+    while (*str != 0)
+    {
+        for (int i = 0; i < NUM_INT_INTEGERS; i++)
+        {
+            controlreturn = psnprintf(teststr, BUFFSIZE, *str, psnprintf_int_integers[i]);
+            
+            testreturn = psnprintf(teststr, 0, *str, psnprintf_int_integers[i]);
+            ASSERT_EQUAL(controlreturn, testreturn, *str);
+            
+            testreturn = psnprintf(teststr, 1, *str, psnprintf_int_integers[i]);
+            ASSERT_EQUAL(controlreturn, testreturn, *str);
+            
+        }
+        str++;
+    }
+    return 1;
+}
+
+static char *psnprintf_f_formats[] = { 
+        "%f",
+        " %f",
+        "%f ",
+        "%10f",
+        "% 10f",
+        "%010f",
+        "%+10f",
+        "%-10f",
+        "%.f", 
+        "%.0f",
+        "%.1f",
+        "%.2f",
+        "%.5f",
+        "%.20f",
+        "%.40f",
+        "%5.5f",
+        "%5.2f",
+        "%#f",
+        "%#.5f",
+        0 };
+#define INFINITY 1.0/(1.0e-23)
+
+static double psnprintf_f_doubles[] = {
+        0.0,
+        -0.0,
+        1.0,
+        -1.0,
+        0.0001,
+        -0.0001,
+        0.000000000000000005, 
+        -0.000000000000000005, 
+        50000000000000000000.0,
+        -50000000000000000000.0,
+        3.1415926,
+        46278643.7489374839274832,
+        789257894257846574.4732847932743,
+        131467328384.37482374832,
+        INFINITY,
+        INFINITY * 0.0 /* nan */ }; 
+#define NUM_F_DOUBLES sizeof(psnprintf_f_doubles) / sizeof(double)        
+        
+int psnprintf_f()
+{
+    // Test lots of numbers with lots of formats against sprintf
+    char controlstr[BUFFSIZE];
+    char teststr[BUFFSIZE];
+    int controlret;
+    int testret;
+    
+    char **str = psnprintf_f_formats;
+    while (*str != 0)
+    {
+		/* printf("\n%s: ", *str); */
+        for (int i = 0; i < NUM_F_DOUBLES; i++)
+        {
+		/*	printf("%.f ", psnprintf_f_doubles[i]); */
+            controlret = sprintf(controlstr, *str, psnprintf_f_doubles[i]);
+            testret = psnprintf(teststr, BUFFSIZE, *str, psnprintf_f_doubles[i]);
+            
+            ASSERT_STREQUAL_RET(controlstr, teststr, controlret, testret);
+        }
+        str++;
+    }
+    return 1;
+}
+
+BEGIN_SUITE(psnprintf)
+ TEST_CASE(psnprintf_pstrnlen)
+ TEST_CASE(psnprintf_pstrnlen_overflow)
+ TEST_CASE(psnprintf_nosub)
+ TEST_CASE(psnprintf_char)
+ TEST_CASE(psnprintf_str)
+ TEST_CASE(psnprintf_strprecision)
+ TEST_CASE(psnprintf_strvarprecision)
+ TEST_CASE(psnprintf_strwidth)
+ TEST_CASE(psnprintf_strvarwidth)
+ TEST_CASE(psnprintf_strwidthprecision)
+ TEST_CASE(psnprintf_strvarwidthvarprecision)
+ TEST_CASE(psnprintf_stroverflow)
+ TEST_CASE(psnprintf_int)
+ TEST_CASE(psnprintf_intoverflow)
+ TEST_CASE(psnprintf_intoverflowreturn)
+ TEST_CASE(psnprintf_f) 
+END_SUITE

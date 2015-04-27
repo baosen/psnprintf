@@ -1,0 +1,14 @@
+psnprintf Test and Benchmark build instructions
+-----------------------------------------------
+
+For Windows users (not running Cygwin):
+ 
+ - At the command line, type "vcvars32" to load your env variables
+ - Now type "nmake -f Makefile.vc"
+ - Run test.exe and bench.exe
+ 
+For everyone else (including Cygwin bash shell):
+
+ - Open Makefile.config in your favourite editor and select your platform
+ - At command line, type "make"
+ - Run "test" and "bench"

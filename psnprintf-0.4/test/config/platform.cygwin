@@ -1,0 +1,11 @@
+#####################################################################
+# psnprintf - Cygwin specific
+
+EXEPRE = 
+EXEEXT = .exe
+LIBPRE = 
+LIBEXT = .lib
+
+AR = ar rc 
+CFLAGS += -DWIN32 -DCYGWIN
+LIBS += -lkernel32

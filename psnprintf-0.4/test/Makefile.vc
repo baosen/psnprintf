@@ -1,0 +1,46 @@
+#####################################################################
+# psnprintf Test & Benchmark Makefile
+
+# Config
+INCLUDEDIR = ../
+
+TEST_EXE = test.exe
+BENCH_EXE = bench.exe
+
+INC = -I$(INCLUDEDIR)
+
+CC  = cl
+CCFLAGS = /Gm /MTd /ZI /Od /D "WIN32" /GX
+
+#####################################################################
+   
+TEST_OBJECTS = main.cpp \
+                test.cpp \
+                ../psnprintf.cpp
+
+TEST_INCLUDES = ../psnprintf.h \
+                 test.h \
+                 psnprintf.test
+                
+BENCH_OBJECTS = bench.cpp \
+                 ../psnprintf.cpp
+                 
+BENCH_INCLUDES = ../psnprintf.h
+
+#####################################################################
+# Rules
+
+# Default Target
+all :        test bench
+
+# Test suite
+test : $(TEST_EXE)
+	
+$(TEST_EXE) : $(TEST_OBJECTS)
+	$(CC) $(CCFLAGS) -o $(@) $(TEST_OBJECTS) $(INC)
+	
+# Benchmark
+bench : $(BENCH_EXE)
+	
+$(BENCH_EXE) : $(BENCH_OBJECTS)
+	$(CC) $(CCFLAGS) -o $(@) $(BENCH_OBJECTS) $(INC)

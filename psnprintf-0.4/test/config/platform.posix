@@ -1,0 +1,11 @@
+#####################################################################
+# psnprintf - POSIX specific
+
+EXEPRE = 
+EXEEXT = 
+LIBPRE = lib
+LIBEXT = .a
+
+AR = ar rc 
+CFLAGS += -DPOSIX
+LIBS +=  
